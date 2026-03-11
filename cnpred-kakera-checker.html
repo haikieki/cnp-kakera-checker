@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CNP RED カケラ 交換チェッカー</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f0f4f8;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    header {
+      width: 100%;
+      background: #b91c1c;
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+    header h1 { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: 0.05em; }
+    .dot { width: 10px; height: 10px; background: #fff; border-radius: 50%; opacity: 0.8; }
+    .container { width: 100%; max-width: 860px; padding: 32px 20px; }
+
+    /* Card */
+    .card { background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.07); margin-bottom: 20px; }
+    .card-title { font-size: 12px; font-weight: 700; color: #b91c1c; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+    .card-subtitle { font-size: 20px; font-weight: 700; color: #1a1a1a; margin-bottom: 20px; }
+
+    /* Textarea */
+    textarea {
+      width: 100%;
+      height: 130px;
+      padding: 12px 14px;
+      border: 2px solid #e5e7eb;
+      border-radius: 10px;
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+      color: #374151;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      line-height: 1.6;
+    }
+    textarea:focus { border-color: #b91c1c; }
+    .addr-hint { font-size: 12px; color: #9ca3af; margin-top: 6px; }
+    .addr-count { font-size: 12px; color: #b91c1c; font-weight: 600; }
+
+    /* Buttons */
+    .btn-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+    button {
+      padding: 11px 22px;
+      background: #b91c1c;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      white-space: nowrap;
+    }
+    button:hover { background: #991b1b; }
+    button:active { transform: scale(0.97); }
+    button:disabled { background: #9ca3af; cursor: not-allowed; }
+    .btn-ghost {
+      background: transparent;
+      color: #6b7280;
+      border: 2px solid #e5e7eb;
+      font-size: 13px;
+      padding: 9px 16px;
+    }
+    .btn-ghost:hover { background: #f9fafb; color: #374151; }
+
+    /* Progress bar */
+    .progress-wrap { margin-top: 16px; display: none; }
+    .progress-label { font-size: 13px; color: #6b7280; margin-bottom: 6px; display: flex; justify-content: space-between; }
+    .progress-bar-bg { background: #f3f4f6; border-radius: 99px; height: 8px; overflow: hidden; }
+    .progress-bar-fill { background: #b91c1c; height: 100%; border-radius: 99px; transition: width 0.3s; width: 0%; }
+
+    /* Filter row */
+    .filter-row {
+      display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+      padding: 16px 20px;
+      background: #fef2f2;
+      border-radius: 10px;
+      margin-bottom: 16px;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 4px; }
+    .filter-group label { font-size: 11px; font-weight: 600; color: #b91c1c; text-transform: uppercase; letter-spacing: 0.07em; }
+    .filter-group input, .filter-group select {
+      padding: 8px 12px;
+      border: 1.5px solid #fecaca;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #374151;
+      outline: none;
+      background: #fff;
+      min-width: 100px;
+    }
+    .filter-group input:focus, .filter-group select:focus { border-color: #b91c1c; }
+
+    /* Summary stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .stat-box {
+      background: linear-gradient(135deg, #b91c1c, #7f1d1d);
+      border-radius: 12px;
+      padding: 16px;
+      color: #fff;
+      text-align: center;
+    }
+    .stat-value { font-size: 28px; font-weight: 800; line-height: 1; }
+    .stat-label { font-size: 11px; opacity: 0.8; margin-top: 4px; }
+
+    /* Result table */
+    .result-table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th {
+      text-align: left;
+      padding: 10px 14px;
+      background: #f9fafb;
+      color: #6b7280;
+      font-weight: 700;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      border-bottom: 2px solid #e5e7eb;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+    th:hover { background: #fef2f2; color: #b91c1c; }
+    th .sort-icon { margin-left: 4px; opacity: 0.4; }
+    th.sorted .sort-icon { opacity: 1; color: #b91c1c; }
+    td { padding: 12px 14px; border-bottom: 1px solid #f3f4f6; color: #374151; vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fef9f9; cursor: pointer; }
+    tr.expanded td { background: #fef2f2; }
+
+    /* Rank badge */
+    .rank { font-weight: 700; color: #9ca3af; font-size: 12px; }
+    .rank-1 { color: #f59e0b; }
+    .rank-2 { color: #9ca3af; }
+    .rank-3 { color: #b45309; }
+
+    .addr-cell { font-family: 'Courier New', monospace; font-size: 12px; color: #374151; }
+    .addr-full { display: none; }
+    .copy-btn {
+      background: none; border: none; cursor: pointer; color: #9ca3af;
+      font-size: 12px; padding: 2px 6px; border-radius: 4px;
+    }
+    .copy-btn:hover { color: #b91c1c; background: #fef2f2; }
+
+    .count-cell { font-size: 22px; font-weight: 800; color: #b91c1c; }
+    .count-zero { color: #d1d5db; }
+
+    /* Expand area */
+    .expand-row td { padding: 0; }
+    .expand-inner {
+      padding: 16px 20px;
+      background: #fffbfb;
+      border-top: 1px solid #fee2e2;
+    }
+    .history-mini-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    .history-mini-table th { font-size: 10px; padding: 6px 10px; background: #fef2f2; }
+    .history-mini-table td { padding: 8px 10px; border-bottom: 1px solid #fef2f2; }
+    .history-mini-table tr:last-child td { border-bottom: none; }
+
+    .tx-link { font-family: 'Courier New', monospace; color: #b91c1c; text-decoration: none; font-size: 11px; }
+    .tx-link:hover { text-decoration: underline; }
+    .asset-chip { background: #fef2f2; color: #b91c1c; padding: 2px 7px; border-radius: 20px; font-size: 10px; font-weight: 500; display: inline-block; margin: 1px; }
+    .no-history { color: #9ca3af; font-size: 12px; padding: 12px; text-align: center; }
+
+    /* Loading row */
+    .loading-row td { color: #9ca3af; font-size: 12px; padding: 16px; }
+    .spinner-sm {
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid #e5e7eb; border-top-color: #b91c1c;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-chip { background: #fef2f2; color: #b91c1c; font-size: 11px; padding: 3px 8px; border-radius: 6px; }
+
+    .badge { background: #fee2e2; color: #b91c1c; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+
+    footer { margin-top: auto; padding: 24px; color: #9ca3af; font-size: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="dot"></div>
+  <div class="dot"></div>
+  <h1>CNP RED カケラ 交換チェッカー</h1>
+</header>
+
+<div class="container">
+
+  <!-- Input Card -->
+  <div class="card">
+    <div class="card-title">Bulk Wallet Lookup</div>
+    <div class="card-subtitle">複数アドレスの交換回数を一括確認</div>
+
+    <textarea id="addrInput" placeholder="Solanaウォレットアドレスを1行に1つ入力...
+例:
+B4dF3zhjoFEvKdgasZCbfUDiW9bAsiBxTmrgWmjeRjFm
+So11111111111111111111111111111111111111112"></textarea>
+    <div class="addr-hint">1行に1アドレス。スペース・空行は自動で除去されます。 <span class="addr-count" id="addrCount"></span></div>
+
+    <div class="btn-row">
+      <button id="searchBtn" onclick="startSearch()">🔍 一括検索</button>
+      <button class="btn-ghost" onclick="clearAll()">クリア</button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label">
+        <span id="progressText">照会中...</span>
+        <span id="progressNum">0 / 0</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressFill"></div></div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="resultsSection" style="display:none;">
+
+    <!-- Stats -->
+    <div class="stats-row" id="statsRow"></div>
+
+    <!-- Filter -->
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>最小交換回数</label>
+        <input type="number" id="filterMin" placeholder="0" min="0" oninput="applyFilter()">
+      </div>
+      <div class="filter-group">
+        <label>最大交換回数</label>
+        <input type="number" id="filterMax" placeholder="制限なし" min="0" oninput="applyFilter()">
+      </div>
+      <div class="filter-group">
+        <label>並び順</label>
+        <select id="sortSelect" onchange="applyFilter()">
+          <option value="count_desc">交換回数 多い順</option>
+          <option value="count_asc">交換回数 少ない順</option>
+          <option value="date_desc">最終交換日時 新しい順</option>
+          <option value="date_asc">最終交換日時 古い順</option>
+          <option value="addr_asc">アドレス昇順</option>
+        </select>
+      </div>
+      <div class="filter-group" style="justify-content: flex-end;">
+        <label>&nbsp;</label>
+        <span class="badge" id="filteredCount"></span>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div class="result-table-wrap">
+        <table id="resultTable">
+          <thead>
+            <tr>
+              <th style="width:44px;">順位</th>
+              <th>ウォレットアドレス</th>
+              <th style="width:120px; text-align:center;">累計交換回数</th>
+              <th style="width:160px;">最終交換日時（JST）</th>
+              <th style="width:60px;"></th>
+            </tr>
+          </thead>
+          <tbody id="resultBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<footer>CNP RED カケラ 交換チェッカー — 非公式ツール</footer>
+
+<script>
+  const API_BASE = 'https://cnp-red-server-279993580412.asia-northeast1.run.app';
+  const CORS_PROXY = 'https://corsproxy.io/?url=';
+
+  const CHARACTER_LABELS = {
+    ema:'エマ', reeri:'リーリー', luna:'ルナ', makami:'マカミ',
+    narukami:'ナルカミ', orochi:'オロチ', setsuna:'セツナ',
+    setsunaLuna:'セツナ＆ルナ', tart:'タルト', tartOrochi:'タルト＆オロチ',
+    towa:'トワ', yama:'ヤーマ', yamaMitama:'ヤーマ＆ミタマ', mitama:'ミタマ'
+  };
+
+  let allResults = []; // { address, exchangeCount, transferHistories, error }
+
+  // Address input counter
+  document.getElementById('addrInput').addEventListener('input', updateCount);
+  function updateCount() {
+    const addrs = parseAddresses();
+    const el = document.getElementById('addrCount');
+    el.textContent = addrs.length > 0 ? addrs.length + ' 件のアドレスを検出' : '';
+  }
+
+  function parseAddresses() {
+    return document.getElementById('addrInput').value
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 20);
+  }
+
+  function clearAll() {
+    document.getElementById('addrInput').value = '';
+    document.getElementById('addrCount').textContent = '';
+    document.getElementById('resultsSection').style.display = 'none';
+    allResults = [];
+  }
+
+  async function apiFetch(address) {
+    const targetUrl = API_BASE + '/kakera/transfer-histories';
+    const opts = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address })
+    };
+    try {
+      const r = await fetch(targetUrl, opts);
+      if (!r.ok) throw new Error('status ' + r.status);
+      return await r.json();
+    } catch {
+      const r2 = await fetch(CORS_PROXY + encodeURIComponent(targetUrl), opts);
+      if (!r2.ok) throw new Error('APIエラー ' + r2.status);
+      return await r2.json();
+    }
+  }
+
+  async function startSearch() {
+    const addresses = parseAddresses();
+    if (addresses.length === 0) {
+      document.getElementById('addrInput').focus();
+      return;
+    }
+
+    const btn = document.getElementById('searchBtn');
+    btn.disabled = true;
+    btn.textContent = '検索中...';
+
+    // Show progress
+    const progressWrap = document.getElementById('progressWrap');
+    progressWrap.style.display = 'block';
+    document.getElementById('resultsSection').style.display = 'none';
+    allResults = [];
+
+    let done = 0;
+    const total = addresses.length;
+
+    function updateProgress() {
+      done++;
+      const pct = Math.round(done / total * 100);
+      document.getElementById('progressFill').style.width = pct + '%';
+      document.getElementById('progressNum').textContent = done + ' / ' + total;
+      document.getElementById('progressText').textContent = '照会中... ' + pct + '%';
+    }
+
+    // Fetch all in parallel (batches of 5 to avoid rate limiting)
+    const BATCH = 5;
+    for (let i = 0; i < addresses.length; i += BATCH) {
+      const batch = addresses.slice(i, i + BATCH);
+      await Promise.all(batch.map(async (address) => {
+        try {
+          const data = await apiFetch(address);
+          allResults.push({
+            address,
+            exchangeCount: data.exchangeCount || 0,
+            transferHistories: data.transferHistories || [],
+            error: null
+          });
+        } catch (e) {
+          allResults.push({ address, exchangeCount: 0, transferHistories: [], error: e.message });
+        }
+        updateProgress();
+      }));
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🔍 一括検索';
+    progressWrap.style.display = 'none';
+
+    renderStats();
+    applyFilter();
+    document.getElementById('resultsSection').style.display = 'block';
+  }
+
+  function renderStats() {
+    const successful = allResults.filter(r => !r.error);
+    const total = allResults.length;
+    const totalExchanges = successful.reduce((s, r) => s + r.exchangeCount, 0);
+    const maxExchange = successful.length ? Math.max(...successful.map(r => r.exchangeCount)) : 0;
+    const exchangedCount = successful.filter(r => r.exchangeCount > 0).length;
+
+    document.getElementById('statsRow').innerHTML = `
+      <div class="stat-box"><div class="stat-value">${total}</div><div class="stat-label">検索アドレス数</div></div>
+      <div class="stat-box"><div class="stat-value">${exchangedCount}</div><div class="stat-label">交換済みアドレス</div></div>
+      <div class="stat-box"><div class="stat-value">${totalExchanges}</div><div class="stat-label">合計交換回数</div></div>
+      <div class="stat-box"><div class="stat-value">${maxExchange}</div><div class="stat-label">最大交換回数</div></div>
+    `;
+  }
+
+  function applyFilter() {
+    const minVal = parseInt(document.getElementById('filterMin').value) || 0;
+    const maxVal = document.getElementById('filterMax').value !== ''
+      ? parseInt(document.getElementById('filterMax').value)
+      : Infinity;
+    const sortVal = document.getElementById('sortSelect').value;
+
+    let filtered = allResults.filter(r => r.exchangeCount >= minVal && r.exchangeCount <= maxVal);
+
+    const getLatestDate = r => {
+      const dates = (r.transferHistories || []).map(h => h.createdAt ? new Date(h.createdAt).getTime() : 0);
+      return dates.length ? Math.max(...dates) : 0;
+    };
+    if (sortVal === 'count_desc') filtered.sort((a, b) => b.exchangeCount - a.exchangeCount);
+    else if (sortVal === 'count_asc') filtered.sort((a, b) => a.exchangeCount - b.exchangeCount);
+    else if (sortVal === 'date_desc') filtered.sort((a, b) => getLatestDate(b) - getLatestDate(a));
+    else if (sortVal === 'date_asc') filtered.sort((a, b) => getLatestDate(a) - getLatestDate(b));
+    else filtered.sort((a, b) => a.address.localeCompare(b.address));
+
+    document.getElementById('filteredCount').textContent = filtered.length + ' 件表示中';
+    renderTable(filtered);
+  }
+
+  function renderTable(rows) {
+    const tbody = document.getElementById('resultBody');
+    tbody.innerHTML = '';
+
+    if (rows.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:32px;color:#9ca3af;">該当するアドレスがありません</td></tr>`;
+      return;
+    }
+
+    rows.forEach((r, i) => {
+      const rank = i + 1;
+      const rankClass = rank <= 3 ? 'rank-' + rank : '';
+      const shortAddr = r.address.slice(0, 6) + '...' + r.address.slice(-6);
+      const countClass = r.exchangeCount === 0 ? 'count-zero' : '';
+
+      // 最終交換日時を算出
+      const latestHistory = (r.transferHistories || [])
+        .filter(h => h.createdAt)
+        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+      const latestDateStr = latestHistory
+        ? new Date(latestHistory.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+        : '<span style="color:#d1d5db;">—</span>';
+
+      const tr = document.createElement('tr');
+      tr.dataset.idx = i;
+      tr.innerHTML = `
+        <td class="rank ${rankClass}">${rank <= 3 ? ['🥇','🥈','🥉'][rank-1] : rank}</td>
+        <td class="addr-cell">
+          <span title="${r.address}">${shortAddr}</span>
+          <button class="copy-btn" onclick="copyAddr(event,'${r.address}')" title="コピー">📋</button>
+          ${r.error ? `<span class="error-chip">エラー</span>` : ''}
+        </td>
+        <td style="text-align:center;"><span class="count-cell ${countClass}">${r.exchangeCount}</span><span style="color:#9ca3af;font-size:11px;"> 回</span></td>
+        <td style="font-size:12px;color:#6b7280;white-space:nowrap;">${latestDateStr}</td>
+        <td style="text-align:center;">
+          <button class="btn-ghost" style="padding:5px 12px;font-size:12px;" onclick="toggleDetail(event, this, '${r.address}', ${i})">詳細 ▼</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+
+      // Detail expand row (hidden)
+      const expandTr = document.createElement('tr');
+      expandTr.className = 'expand-row';
+      expandTr.id = 'expand-' + i;
+      expandTr.style.display = 'none';
+      expandTr.innerHTML = `<td colspan="5"><div class="expand-inner" id="expand-inner-${i}"></div></td>`;
+      tbody.appendChild(expandTr);
+    });
+
+    // Store filtered for expand use
+    window._filteredRows = rows;
+  }
+
+  function toggleDetail(event, btn, address, idx) {
+    event.stopPropagation();
+    const expandRow = document.getElementById('expand-' + idx);
+    const inner = document.getElementById('expand-inner-' + idx);
+    const isOpen = expandRow.style.display !== 'none';
+
+    if (isOpen) {
+      expandRow.style.display = 'none';
+      btn.textContent = '詳細 ▼';
+    } else {
+      expandRow.style.display = 'table-row';
+      btn.textContent = '閉じる ▲';
+      renderDetail(inner, window._filteredRows[idx]);
+    }
+  }
+
+  function renderDetail(container, r) {
+    const histories = r.transferHistories || [];
+    if (r.error) {
+      container.innerHTML = `<div class="no-history">⚠️ 取得エラー: ${r.error}</div>`;
+      return;
+    }
+    if (histories.length === 0) {
+      container.innerHTML = `<div class="no-history">📭 送付履歴はありません</div>`;
+      return;
+    }
+
+    const rows = histories.map((h, i) => {
+      const assets = (h.assets || []).map(a =>
+        `<span class="asset-chip">${CHARACTER_LABELS[a] || a}</span>`
+      ).join('');
+      const txShort = h.transactionId
+        ? h.transactionId.slice(0,8) + '...' + h.transactionId.slice(-8) : '—';
+      const txLink = h.transactionId
+        ? `<a class="tx-link" href="https://solscan.io/tx/${h.transactionId}" target="_blank">${txShort} ↗</a>` : '—';
+      const date = h.createdAt
+        ? new Date(h.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '—';
+      return `<tr>
+        <td style="color:#9ca3af;font-size:11px;">${i+1}</td>
+        <td>${txLink}</td>
+        <td>${assets || '—'}</td>
+        <td style="color:#9ca3af;font-size:11px;white-space:nowrap;">${date}</td>
+      </tr>`;
+    }).join('');
+
+    container.innerHTML = `
+      <table class="history-mini-table">
+        <thead><tr><th>#</th><th>トランザクション</th><th>送付カケラ</th><th>日時（JST）</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  function copyAddr(event, addr) {
+    event.stopPropagation();
+    navigator.clipboard.writeText(addr).catch(() => {});
+    const btn = event.target;
+    btn.textContent = '✅';
+    setTimeout(() => btn.textContent = '📋', 1500);
+  }
+</script>
+</body>
+</html>
