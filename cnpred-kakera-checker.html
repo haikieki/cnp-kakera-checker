@@ -404,6 +404,8 @@
 <nav class="page-nav">
   <button class="page-tab active" onclick="switchPageTab('kakera', this)">🔥 カケラ交換チェッカー</button>
   <button class="page-tab" onclick="switchPageTab('search', this)">🔍 個体番号検索</button>
+  <button class="page-tab" onclick="switchPageTab('complete', this)">🏆 コンプリートチェック</button>
+  <button class="page-tab" onclick="switchPageTab('kakeranft', this)">💎 KAKERA保有チェック</button>
 </nav>
 
 <!-- ========== タブ1: カケラ交換チェッカー ========== -->
@@ -598,6 +600,248 @@ So11111111111111111111111111111111111111112"></textarea>
 
 </div>
 
+<!-- ========== タブ3: コンプリートチェック ========== -->
+<div id="page-complete" class="container" style="display:none;">
+
+  <div class="card">
+    <div class="card-title">Complete Check</div>
+    <div class="card-subtitle">CNP RED コンプリートチェック</div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">
+      以下の9キャラクター全員を保有しているとコンプリートです
+    </p>
+
+    <!-- コンプリート条件 -->
+    <div class="complete-chars-required">
+      <span class="char-required">トワ</span>
+      <span class="char-required">オロチ</span>
+      <span class="char-required">ミタマ</span>
+      <span class="char-required">ルナ</span>
+      <span class="char-required">セツナ</span>
+      <span class="char-required">ヤーマ</span>
+      <span class="char-required">ナルカミ</span>
+      <span class="char-required">リーリー</span>
+      <span class="char-required">マカミ</span>
+    </div>
+
+    <div class="input-group" style="margin-top:20px;">
+      <label>ウォレットアドレス（複数の場合は改行で区切る）</label>
+      <textarea id="completeWalletInput" placeholder="例:
+7XaT...4kpQ
+9Abc...xyz1" style="height:120px;"></textarea>
+      <div class="addr-hint" style="margin-top:6px;">
+        <span class="addr-count" id="completeAddrCount"></span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button id="completeSrchBtn" onclick="doCompleteCheck()">🏆 チェック</button>
+      <button class="btn-ghost" onclick="clearCompleteCheck()">クリア</button>
+    </div>
+    <div class="note-box" style="margin-top:14px;">⚡ ウォレットごとに保有NFTを取得するため、件数が多いほど時間がかかります</div>
+  </div>
+
+  <!-- プログレス -->
+  <div class="progress-wrap" id="completeProgressWrap">
+    <div class="progress-label">
+      <span id="completeProgressText">照会中...</span>
+      <span id="completeProgressNum">0 / 0</span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="completeProgressFill"></div></div>
+  </div>
+
+  <!-- エラー -->
+  <div class="s-error" id="completeError"></div>
+
+  <!-- 結果 -->
+  <div id="completeResultsSection" style="display:none;">
+
+    <!-- サマリーStats -->
+    <div class="stats-row" id="completeStatsRow"></div>
+
+    <!-- 出力ボタン -->
+    <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+      <div class="s-export-status" id="completeExportStatus"></div>
+      <button class="export-sheet-btn" id="completeExportBtn" onclick="exportCompleteToSheet()">
+        📊 スプレッドシートに出力
+      </button>
+    </div>
+
+    <!-- 結果カード一覧 -->
+    <div id="completeResultsContainer"></div>
+  </div>
+
+</div>
+
+<style>
+  .complete-chars-required {
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .char-required {
+    background: #fef2f2; color: #b91c1c;
+    border: 1.5px solid #fecaca;
+    padding: 5px 12px; border-radius: 20px;
+    font-size: 13px; font-weight: 600;
+  }
+
+  /* コンプリートカード */
+  .complete-card {
+    background: #f9fafb; border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 14px;
+    border-left: 5px solid #e5e7eb;
+    transition: box-shadow 0.15s;
+  }
+  .complete-card.is-complete { border-left-color: #16a34a; background: #f0fdf4; }
+  .complete-card.not-complete { border-left-color: #b91c1c; }
+
+  .complete-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 10px; margin-bottom: 14px;
+  }
+  .complete-wallet {
+    font-family: 'Courier New', monospace; font-size: 12px;
+    color: #374151; word-break: break-all; line-height: 1.5;
+    display: flex; align-items: flex-start; gap: 4px;
+  }
+  .complete-badge {
+    padding: 5px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+  }
+  .badge-complete   { background: #16a34a; color: #fff; }
+  .badge-incomplete { background: #b91c1c; color: #fff; }
+
+  .char-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+    gap: 8px;
+  }
+  .char-tile {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 8px 6px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; text-align: center; gap: 4px;
+  }
+  .char-tile.have  { background: #dcfce7; color: #15803d; border: 1.5px solid #86efac; }
+  .char-tile.lack  { background: #fef2f2; color: #9ca3af; border: 1.5px dashed #fecaca; }
+  .char-tile .char-icon { font-size: 16px; }
+  .char-tile .char-count { font-size: 10px; opacity: 0.75; }
+</style>
+
+<!-- ========== タブ4: KAKERA保有チェック ========== -->
+<div id="page-kakeranft" class="container" style="display:none;">
+
+  <div class="card">
+    <div class="card-title">KAKERA NFT Holder Check</div>
+    <div class="card-subtitle">KAKERA保有チェック</div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">
+      ウォレットアドレスを入力すると、保有しているKAKERA NFTとキャラクター名を確認できます
+    </p>
+
+    <div class="input-group">
+      <label>ウォレットアドレス（複数の場合は改行で区切る）</label>
+      <textarea id="kakeranftWalletInput" placeholder="例:
+7XaT...4kpQ
+9Abc...xyz1" style="height:120px;"></textarea>
+      <div class="addr-hint" style="margin-top:6px;">
+        <span class="addr-count" id="kakeranftAddrCount"></span>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button id="kakeranftSrchBtn" onclick="doKakeraNftCheck()">💎 チェック</button>
+      <button class="btn-ghost" onclick="clearKakeraNftCheck()">クリア</button>
+    </div>
+    <div class="note-box" style="margin-top:14px;">⚡ ウォレットごとにオンチェーンデータを取得するため、件数が多いほど時間がかかります</div>
+  </div>
+
+  <!-- プログレス -->
+  <div class="progress-wrap" id="kakeranftProgressWrap" style="display:none;">
+    <div class="progress-label">
+      <span id="kakeranftProgressText">照会中...</span>
+      <span id="kakeranftProgressNum">0 / 0</span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="kakeranftProgressFill"></div></div>
+  </div>
+
+  <!-- エラー -->
+  <div class="s-error" id="kakeranftError"></div>
+
+  <!-- 結果 -->
+  <div id="kakeranftResultsSection" style="display:none;">
+
+    <!-- サマリー -->
+    <div class="stats-row" id="kakeranftStatsRow"></div>
+
+    <!-- 出力ボタン -->
+    <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+      <div class="s-export-status" id="kakeranftExportStatus"></div>
+      <button class="export-sheet-btn" id="kakeranftExportBtn" onclick="exportKakeraNftToSheet()">
+        📊 スプレッドシートに出力
+      </button>
+    </div>
+
+    <!-- 結果カード一覧 -->
+    <div id="kakeranftResultsContainer"></div>
+  </div>
+
+</div>
+
+<style>
+  /* KAKERA NFT タブ */
+  .kn-card {
+    background: #f9fafb; border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 14px;
+    border-left: 5px solid #7c3aed;
+    transition: box-shadow 0.15s;
+  }
+  .kn-card.kn-has-nft { border-left-color: #7c3aed; background: #faf5ff; }
+  .kn-card.kn-no-nft  { border-left-color: #d1d5db; }
+
+  .kn-card-header {
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 10px; margin-bottom: 14px;
+  }
+  .kn-wallet {
+    font-family: 'Courier New', monospace; font-size: 12px;
+    color: #374151; word-break: break-all; line-height: 1.5;
+    display: flex; align-items: flex-start; gap: 4px;
+  }
+  .kn-badge {
+    padding: 5px 14px; border-radius: 20px;
+    font-size: 13px; font-weight: 700; white-space: nowrap; flex-shrink: 0;
+  }
+  .kn-badge-has  { background: #7c3aed; color: #fff; }
+  .kn-badge-none { background: #9ca3af; color: #fff; }
+
+  .kn-char-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .kn-char-tile {
+    display: flex; flex-direction: column; align-items: center;
+    padding: 8px 6px; border-radius: 8px;
+    font-size: 12px; font-weight: 600; text-align: center; gap: 3px;
+  }
+  .kn-char-tile.kn-have { background: #ede9fe; color: #5b21b6; border: 1.5px solid #c4b5fd; }
+  .kn-char-tile.kn-lack { background: #f3f4f6; color: #9ca3af; border: 1.5px dashed #d1d5db; }
+  .kn-char-icon { font-size: 16px; }
+  .kn-char-count {
+    font-size: 15px; font-weight: 800; color: #7c3aed;
+  }
+  .kn-char-tile.kn-lack .kn-char-count { color: #9ca3af; }
+  .kn-char-name {
+    font-size: 11px; color: #5b21b6;
+  }
+  .kn-char-tile.kn-lack .kn-char-name { color: #9ca3af; }
+
+  .kn-nft-list {
+    display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px;
+  }
+  .kn-nft-chip {
+    background: #fff; border: 1px solid #ddd6fe;
+    padding: 4px 10px; border-radius: 6px;
+    font-size: 11px; color: #5b21b6;
+  }
+</style>
+
 <footer>CNP RED ツール — 非公式ツール</footer>
 
 <script>
@@ -605,8 +849,300 @@ So11111111111111111111111111111111111111112"></textarea>
   function switchPageTab(tabId, btn) {
     document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('page-kakera').style.display = tabId === 'kakera' ? '' : 'none';
-    document.getElementById('page-search').style.display = tabId === 'search' ? '' : 'none';
+    document.getElementById('page-kakera').style.display      = tabId === 'kakera'    ? '' : 'none';
+    document.getElementById('page-search').style.display      = tabId === 'search'    ? '' : 'none';
+    document.getElementById('page-complete').style.display    = tabId === 'complete'  ? '' : 'none';
+    document.getElementById('page-kakeranft').style.display   = tabId === 'kakeranft' ? '' : 'none';
+  }
+
+  // ============================================================
+  // ===== コンプリートチェック =====
+  // ============================================================
+
+  // コンプリートに必要な9キャラクター定義
+  // alts: NFTメタデータ上で使われうる表記のバリエーション（小文字）
+  const COMPLETE_CHARS = [
+    { key: 'towa',     ja: 'トワ',     en: 'towa',     alts: [],                          icon: '⚡' },
+    { key: 'orochi',   ja: 'オロチ',   en: 'orochi',   alts: [],                          icon: '🐍' },
+    { key: 'mitama',   ja: 'ミタマ',   en: 'mitama',   alts: [],                          icon: '👻' },
+    { key: 'luna',     ja: 'ルナ',     en: 'luna',     alts: [],                          icon: '🌙' },
+    { key: 'setsuna',  ja: 'セツナ',   en: 'setsuna',  alts: [],                          icon: '⚔️' },
+    { key: 'yama',     ja: 'ヤーマ',   en: 'yama',     alts: ['yaama'],                   icon: '🗻' },
+    { key: 'narukami', ja: 'ナルカミ', en: 'narukami', alts: [],                          icon: '⛩️' },
+    { key: 'reeri',    ja: 'リーリー', en: 'reeri',    alts: ['leelee', 'riri', 'leeli', 'leeri'],  icon: '🌸' },
+    { key: 'makami',   ja: 'マカミ',   en: 'makami',   alts: [],                          icon: '🦊' },
+  ];
+
+  const COMPLETE_COLLECTION = 'ALaC3msikc7MFJeVywFBiGLBfM7f4Uoy1gXWu4S3xJie';
+
+  let completeResults = [];
+
+  // アドレス入力カウンター
+  document.getElementById('completeWalletInput').addEventListener('input', () => {
+    const addrs = parseCompleteAddresses();
+    document.getElementById('completeAddrCount').textContent =
+      addrs.length > 0 ? addrs.length + ' 件のアドレスを検出' : '';
+  });
+
+  function parseCompleteAddresses() {
+    return document.getElementById('completeWalletInput').value
+      .split('\n').map(l => l.trim()).filter(l => l.length > 20);
+  }
+
+  function clearCompleteCheck() {
+    document.getElementById('completeWalletInput').value = '';
+    document.getElementById('completeAddrCount').textContent = '';
+    document.getElementById('completeResultsSection').style.display = 'none';
+    document.getElementById('completeError').style.display = 'none';
+    document.getElementById('completeProgressWrap').style.display = 'none';
+    completeResults = [];
+  }
+
+  /** Helius getAssetsByOwner でウォレットの保有NFTを取得し CNP RED だけ返す */
+  async function fetchWalletCNPRed(walletAddress) {
+    const apiKey = getApiKey();
+    const url = 'https://mainnet.helius-rpc.com/?api-key=' + apiKey;
+    const nfts = [];
+    let page = 1;
+
+    while (page <= 5) {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 'complete-check',
+          method: 'getAssetsByOwner',
+          params: { ownerAddress: walletAddress, page, limit: 1000 }
+        })
+      });
+      if (!resp.ok) throw new Error('API error ' + resp.status);
+      const data = await resp.json();
+      if (data.error) throw new Error(JSON.stringify(data.error));
+
+      const items = (data.result && data.result.items) ? data.result.items : [];
+      items.forEach(item => {
+        // CNP RED コレクションのみ
+        const groups = item.grouping || [];
+        const isCNPRed = groups.some(g => g.group_key === 'collection' && g.group_value === COMPLETE_COLLECTION);
+        if (!isCNPRed) return;
+
+        nfts.push({
+          mint:       item.id,
+          name:       item.content?.metadata?.name || '',
+          attributes: item.content?.metadata?.attributes || []
+        });
+      });
+
+      if (items.length < 1000) break;
+      page++;
+      await sleep(200);
+    }
+    return nfts;
+  }
+
+  /** キャラクターの全候補スペル（小文字）を配列で返す */
+  function charTokens(ch) {
+    return [ch.en, ch.ja, ...ch.alts];
+  }
+
+  /** 文字列がキャラクターのいずれかのスペルに完全一致または包含するか */
+  function matchesChar(str, ch) {
+    const s = str.toLowerCase();
+    return charTokens(ch).some(t => s === t || s.includes(t));
+  }
+
+  /** NFT1件からキャラクターキーを抽出 */
+  function extractCharacter(nft) {
+    const nameLower = (nft.name || '').toLowerCase();
+    const attrs = nft.attributes || [];
+
+    // 1) 属性値で完全一致を優先（誤マッチ防止）
+    for (const attr of attrs) {
+      const vv = (attr.value || '').toLowerCase();
+      for (const ch of COMPLETE_CHARS) {
+        if (charTokens(ch).some(t => vv === t)) return ch.key;
+      }
+    }
+
+    // 2) 属性値で部分一致
+    for (const attr of attrs) {
+      const vv = (attr.value || '').toLowerCase();
+      for (const ch of COMPLETE_CHARS) {
+        if (charTokens(ch).some(t => vv.includes(t))) return ch.key;
+      }
+    }
+
+    // 3) NFT名で部分一致
+    for (const ch of COMPLETE_CHARS) {
+      if (matchesChar(nameLower, ch)) return ch.key;
+    }
+
+    return null;
+  }
+
+  /** コンプリートチェックのメイン処理 */
+  async function doCompleteCheck() {
+    const wallets = parseCompleteAddresses();
+    if (wallets.length === 0) {
+      document.getElementById('completeError').textContent = '⚠️ ウォレットアドレスを入力してください';
+      document.getElementById('completeError').style.display = 'block';
+      return;
+    }
+
+    const btn = document.getElementById('completeSrchBtn');
+    btn.disabled = true;
+    btn.textContent = 'チェック中...';
+    document.getElementById('completeError').style.display = 'none';
+    document.getElementById('completeResultsSection').style.display = 'none';
+
+    const progressWrap = document.getElementById('completeProgressWrap');
+    progressWrap.style.display = 'block';
+    completeResults = [];
+
+    let done = 0;
+    const total = wallets.length;
+
+    for (const wallet of wallets) {
+      try {
+        const nfts = await fetchWalletCNPRed(wallet);
+
+        // 保有キャラクターを集計（複数所持も考慮）
+        const charCounts = {};
+        COMPLETE_CHARS.forEach(ch => charCounts[ch.key] = 0);
+
+        nfts.forEach(nft => {
+          const key = extractCharacter(nft);
+          if (key && key in charCounts) charCounts[key]++;
+        });
+
+        const isComplete = COMPLETE_CHARS.every(ch => charCounts[ch.key] > 0);
+        completeResults.push({ wallet, charCounts, isComplete, nftCount: nfts.length, error: null });
+      } catch(e) {
+        completeResults.push({ wallet, charCounts: null, isComplete: false, nftCount: 0, error: e.message });
+      }
+
+      done++;
+      const pct = Math.round(done / total * 100);
+      document.getElementById('completeProgressFill').style.width = pct + '%';
+      document.getElementById('completeProgressNum').textContent = done + ' / ' + total;
+      document.getElementById('completeProgressText').textContent = '照会中... ' + pct + '%';
+    }
+
+    btn.disabled = false;
+    btn.textContent = '🏆 チェック';
+    progressWrap.style.display = 'none';
+    renderCompleteResults();
+    document.getElementById('completeResultsSection').style.display = 'block';
+  }
+
+  /** 結果を描画 */
+  function renderCompleteResults() {
+    const completeCount = completeResults.filter(r => r.isComplete).length;
+    const total = completeResults.length;
+
+    document.getElementById('completeStatsRow').innerHTML = `
+      <div class="stat-box"><div class="stat-value">${total}</div><div class="stat-label">検索ウォレット数</div></div>
+      <div class="stat-box"><div class="stat-value">${completeCount}</div><div class="stat-label">コンプリート済み</div></div>
+      <div class="stat-box"><div class="stat-value">${total - completeCount}</div><div class="stat-label">未コンプリート</div></div>
+    `;
+
+    const container = document.getElementById('completeResultsContainer');
+    container.innerHTML = '';
+
+    // コンプリート済みを上に
+    const sorted = [...completeResults].sort((a, b) => b.isComplete - a.isComplete);
+
+    sorted.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'complete-card ' + (r.isComplete ? 'is-complete' : 'not-complete');
+
+      const shortWallet = r.wallet.slice(0,8) + '...' + r.wallet.slice(-8);
+      const badgeClass = r.isComplete ? 'badge-complete' : 'badge-incomplete';
+      const badgeText  = r.isComplete ? '✅ コンプリート' : '❌ 未コンプリート';
+
+      let charGridHtml = '';
+      if (r.error) {
+        charGridHtml = `<div style="color:#b91c1c;font-size:12px;">⚠️ エラー: ${r.error}</div>`;
+      } else {
+        charGridHtml = '<div class="char-grid">' +
+          COMPLETE_CHARS.map(ch => {
+            const count = r.charCounts[ch.key];
+            const cls = count > 0 ? 'have' : 'lack';
+            const icon = count > 0 ? ch.icon : '—';
+            const countLabel = count > 1 ? `×${count}` : '';
+            return `<div class="char-tile ${cls}">
+              <span class="char-icon">${icon}</span>
+              <span>${ch.ja}</span>
+              ${countLabel ? `<span class="char-count">${countLabel}</span>` : ''}
+            </div>`;
+          }).join('') +
+        '</div>';
+      }
+
+      card.innerHTML = `
+        <div class="complete-card-header">
+          <div class="complete-wallet">
+            <span title="${r.wallet}">${shortWallet}</span>
+            <button class="copy-btn" onclick="copyText(event,'${r.wallet}')" title="コピー">📋</button>
+          </div>
+          <div class="complete-badge ${badgeClass}">${badgeText}</div>
+        </div>
+        ${charGridHtml}
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  /** コンプリートチェック結果をスプレッドシートに出力 */
+  async function exportCompleteToSheet() {
+    if (!completeResults || completeResults.length === 0) {
+      setCompleteExportStatus('error', '出力する結果がありません'); return;
+    }
+    if (!GAS_EXPORT_URL) {
+      setCompleteExportStatus('error', 'GAS_EXPORT_URL が未設定です'); return;
+    }
+
+    const btn = document.getElementById('completeExportBtn');
+    btn.disabled = true;
+    btn.textContent = '出力中...';
+    setCompleteExportStatus('', '');
+
+    const rows = completeResults.map(r => ({
+      wallet:      r.wallet,
+      isComplete:  r.isComplete ? 'コンプリート' : '未コンプリート',
+      nftCount:    r.nftCount,
+      towa:        r.charCounts ? r.charCounts.towa     : 0,
+      orochi:      r.charCounts ? r.charCounts.orochi   : 0,
+      mitama:      r.charCounts ? r.charCounts.mitama   : 0,
+      luna:        r.charCounts ? r.charCounts.luna     : 0,
+      setsuna:     r.charCounts ? r.charCounts.setsuna  : 0,
+      yama:        r.charCounts ? r.charCounts.yama     : 0,
+      narukami:    r.charCounts ? r.charCounts.narukami : 0,
+      reeri:       r.charCounts ? r.charCounts.reeri    : 0,
+      makami:      r.charCounts ? r.charCounts.makami   : 0,
+      error:       r.error || ''
+    }));
+
+    try {
+      await fetch(GAS_EXPORT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ type: 'complete', results: rows })
+      });
+      setCompleteExportStatus('ok', `✅ 出力完了 — <a href="${SHEET_URL}" target="_blank">スプレッドシートを開く ↗</a>`);
+    } catch(e) {
+      setCompleteExportStatus('error', '⚠️ 送信エラー: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📊 スプレッドシートに出力';
+    }
+  }
+
+  function setCompleteExportStatus(type, html) {
+    const el = document.getElementById('completeExportStatus');
+    el.innerHTML = html;
+    el.className = 's-export-status' + (html ? ' show' : '') + (type === 'error' ? ' error' : '');
   }
 
   // ===== 検索サブタブ切り替え =====
@@ -620,7 +1156,7 @@ So11111111111111111111111111111111111111112"></textarea>
 
   // ===== GAS Web App URL (スプレッドシート出力用) =====
   // ★ GASをデプロイしたあと、ウェブアプリのURLをここに貼り付けてください
-  const GAS_EXPORT_URL = 'https://script.google.com/macros/s/AKfycbycfXci2RVKXbqs36MlZb9xkDj6LfSM6xVSPNE-oyVdOAmt0v-NjJlwp5uKEWLkCPVo/exec';
+  const GAS_EXPORT_URL = 'https://script.google.com/macros/s/AKfycbz2lLRQS00I2UuI_J-Eh8zoazYYShFhz1IJNJ7FFPzcuHSMWIMS8CrgW50EPnqmFYSHUQ/exec';
 
   // 出力先スプレッドシートURL（確認用リンクに使用）
   const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1vKKnN3IlI_ZQZpka9xrz9QS399IeljbqsnE4xBgR_zM/edit';
@@ -1301,6 +1837,318 @@ So11111111111111111111111111111111111111112"></textarea>
     const btn = event.target;
     btn.textContent = '✅';
     setTimeout(() => btn.textContent = '📋', 1500);
+  }
+
+  // ============================================================
+  // ===== KAKERA NFT 保有チェック =====
+  // ============================================================
+
+  const KAKERA_NFT_COLLECTION = 'D1YbE6tpf7m8itvWRL1n5N6m1Vx6Yck2mLgy52gGpSGS';
+
+  // 全11キャラクター定義（NFTメタデータの実際のvalue値に合わせたkey）
+  const KAKERA_CHARS = [
+    { key: 'yama',     ja: 'ヤーマ',   en: 'yama',     alts: ['yaama'],        icon: '🗻' },
+    { key: 'makami',   ja: 'マカミ',   en: 'makami',   alts: [],               icon: '🦊' },
+    { key: 'setsuna',  ja: 'セツナ',   en: 'setsuna',  alts: [],               icon: '⚔️' },
+    { key: 'mitama',   ja: 'ミタマ',   en: 'mitama',   alts: [],               icon: '👻' },
+    { key: 'talt',     ja: 'タルト',   en: 'talt',     alts: ['tart'],         icon: '🍮' },
+    { key: 'leelee',   ja: 'リーリー', en: 'leelee',   alts: ['reeri', 'riri', 'leeri'], icon: '🌸' },
+    { key: 'orochi',   ja: 'オロチ',   en: 'orochi',   alts: [],               icon: '🐍' },
+    { key: 'luna',     ja: 'ルナ',     en: 'luna',     alts: [],               icon: '🌙' },
+    { key: 'ema',      ja: 'エマ',     en: 'ema',      alts: [],               icon: '✨' },
+    { key: 'narukami', ja: 'ナルカミ', en: 'narukami', alts: [],               icon: '⛩️' },
+    { key: 'towa',     ja: 'トワ',     en: 'towa',     alts: [],               icon: '⚡' },
+  ];
+
+  let kakeranftResults = [];
+
+  document.getElementById('kakeranftWalletInput').addEventListener('input', () => {
+    const addrs = parseKakeraNftAddresses();
+    document.getElementById('kakeranftAddrCount').textContent =
+      addrs.length > 0 ? addrs.length + ' 件のアドレスを検出' : '';
+  });
+
+  function parseKakeraNftAddresses() {
+    return document.getElementById('kakeranftWalletInput').value
+      .split('\n').map(l => l.trim()).filter(l => l.length > 20);
+  }
+
+  function clearKakeraNftCheck() {
+    document.getElementById('kakeranftWalletInput').value = '';
+    document.getElementById('kakeranftAddrCount').textContent = '';
+    document.getElementById('kakeranftResultsSection').style.display = 'none';
+    document.getElementById('kakeranftError').style.display = 'none';
+    document.getElementById('kakeranftProgressWrap').style.display = 'none';
+    kakeranftResults = [];
+  }
+
+  /** Helius getAssetsByOwner でウォレットの保有KAKERAを取得 */
+  async function fetchWalletKakeraNft(walletAddress) {
+    const apiKey = getApiKey();
+    const url = 'https://mainnet.helius-rpc.com/?api-key=' + apiKey;
+    const nfts = [];
+    let page = 1;
+
+    while (page <= 10) {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 'kakera-nft-check',
+          method: 'getAssetsByOwner',
+          params: { ownerAddress: walletAddress, page, limit: 1000 }
+        })
+      });
+      if (!resp.ok) throw new Error('API error ' + resp.status);
+      const data = await resp.json();
+      if (data.error) throw new Error(JSON.stringify(data.error));
+
+      const items = (data.result && data.result.items) ? data.result.items : [];
+      items.forEach(item => {
+        const groups = item.grouping || [];
+        const isKakeraNft = groups.some(g =>
+          g.group_key === 'collection' && g.group_value === KAKERA_NFT_COLLECTION
+        );
+        if (!isKakeraNft) return;
+
+        nfts.push({
+          mint:       item.id,
+          name:       item.content?.metadata?.name || '',
+          attributes: item.content?.metadata?.attributes || []
+        });
+      });
+
+      if (items.length < 1000) break;
+      page++;
+      await sleep(200);
+    }
+    return nfts;
+  }
+
+  /** KAKERA_CHARSの全スペル候補（小文字）を返す */
+  function kakeraNftTokens(ch) {
+    return [ch.key, ch.en, ch.ja, ...ch.alts].map(s => s.toLowerCase());
+  }
+
+  /** NFT1件からKAKERA_CHARSのkeyを抽出 */
+  function extractKakeraNftCharacter(nft) {
+    const attrs = nft.attributes || [];
+    const nameLower = (nft.name || '').toLowerCase();
+
+    // 1) 属性値で完全一致
+    for (const attr of attrs) {
+      const vv = (attr.value || '').toLowerCase();
+      for (const ch of KAKERA_CHARS) {
+        if (kakeraNftTokens(ch).some(t => vv === t)) return ch.key;
+      }
+    }
+
+    // 2) 属性値で部分一致
+    for (const attr of attrs) {
+      const vv = (attr.value || '').toLowerCase();
+      for (const ch of KAKERA_CHARS) {
+        if (kakeraNftTokens(ch).some(t => vv.includes(t))) return ch.key;
+      }
+    }
+
+    // 3) NFT名で部分一致
+    for (const ch of KAKERA_CHARS) {
+      if (kakeraNftTokens(ch).some(t => nameLower.includes(t))) return ch.key;
+    }
+
+    return null; // 不明
+  }
+
+  /** KAKERA NFT 保有チェックのメイン処理 */
+  async function doKakeraNftCheck() {
+    const wallets = parseKakeraNftAddresses();
+    if (wallets.length === 0) {
+      document.getElementById('kakeranftError').textContent = '⚠️ ウォレットアドレスを入力してください';
+      document.getElementById('kakeranftError').style.display = 'block';
+      return;
+    }
+
+    const btn = document.getElementById('kakeranftSrchBtn');
+    btn.disabled = true;
+    btn.textContent = 'チェック中...';
+    document.getElementById('kakeranftError').style.display = 'none';
+    document.getElementById('kakeranftResultsSection').style.display = 'none';
+
+    const progressWrap = document.getElementById('kakeranftProgressWrap');
+    progressWrap.style.display = 'block';
+    kakeranftResults = [];
+
+    let done = 0;
+    const total = wallets.length;
+
+    for (const wallet of wallets) {
+      try {
+        const nfts = await fetchWalletKakeraNft(wallet);
+
+        // キャラクター別に集計（全11種を0で初期化）
+        const charCounts = {};
+        const unknownNfts = [];
+        KAKERA_CHARS.forEach(ch => charCounts[ch.key] = 0);
+        nfts.forEach(nft => {
+          const key = extractKakeraNftCharacter(nft);
+          if (key && key in charCounts) charCounts[key]++;
+          else {
+            charCounts['__unknown__'] = (charCounts['__unknown__'] || 0) + 1;
+            unknownNfts.push({ name: nft.name, attrs: nft.attributes });
+          }
+        });
+
+        kakeranftResults.push({
+          wallet,
+          nftCount: nfts.length,
+          charCounts,
+          unknownNfts,
+          nfts,
+          error: null
+        });
+      } catch(e) {
+        kakeranftResults.push({ wallet, nftCount: 0, charCounts: {}, nfts: [], error: e.message });
+      }
+
+      done++;
+      const pct = Math.round(done / total * 100);
+      document.getElementById('kakeranftProgressFill').style.width = pct + '%';
+      document.getElementById('kakeranftProgressNum').textContent = done + ' / ' + total;
+      document.getElementById('kakeranftProgressText').textContent = '照会中... ' + pct + '%';
+    }
+
+    btn.disabled = false;
+    btn.textContent = '💎 チェック';
+    progressWrap.style.display = 'none';
+    renderKakeraNftResults();
+    document.getElementById('kakeranftResultsSection').style.display = 'block';
+  }
+
+  /** 結果を描画 */
+  function renderKakeraNftResults() {
+    const totalNfts   = kakeranftResults.reduce((s, r) => s + r.nftCount, 0);
+    const holdersCount = kakeranftResults.filter(r => r.nftCount > 0).length;
+    const total = kakeranftResults.length;
+
+    document.getElementById('kakeranftStatsRow').innerHTML = `
+      <div class="stat-box"><div class="stat-value">${total}</div><div class="stat-label">検索ウォレット数</div></div>
+      <div class="stat-box"><div class="stat-value">${holdersCount}</div><div class="stat-label">保有ウォレット数</div></div>
+      <div class="stat-box"><div class="stat-value">${totalNfts}</div><div class="stat-label">総KAKERA保有数</div></div>
+      <div class="stat-box"><div class="stat-value">11</div><div class="stat-label">キャラクター種</div></div>
+    `;
+
+    const container = document.getElementById('kakeranftResultsContainer');
+    container.innerHTML = '';
+
+    // 保有多い順にソート
+    const sorted = [...kakeranftResults].sort((a, b) => b.nftCount - a.nftCount);
+
+    sorted.forEach(r => {
+      const card = document.createElement('div');
+      card.className = 'kn-card ' + (r.nftCount > 0 ? 'kn-has-nft' : 'kn-no-nft');
+
+      const shortWallet = r.wallet.slice(0,8) + '...' + r.wallet.slice(-8);
+      const badgeClass = r.nftCount > 0 ? 'kn-badge-has' : 'kn-badge-none';
+      const badgeText  = r.nftCount > 0 ? '💎 ' + r.nftCount + ' 個保有' : '未保有';
+
+      let bodyHtml = '';
+      if (r.error) {
+        bodyHtml = `<div style="color:#b91c1c;font-size:12px;">⚠️ エラー: ${r.error}</div>`;
+      } else if (r.nftCount === 0) {
+        bodyHtml = `<div style="color:#9ca3af;font-size:13px;">KAKERAを保有していません</div>`;
+      } else {
+        // 11キャラクター固定グリッド（0保有も表示）
+        const charGrid = KAKERA_CHARS.map(ch => {
+          const cnt = r.charCounts[ch.key] || 0;
+          const cls = cnt > 0 ? 'kn-char-tile kn-have' : 'kn-char-tile kn-lack';
+          return `<div class="${cls}">
+            <div class="kn-char-icon">${ch.icon}</div>
+            <div class="kn-char-count">${cnt > 0 ? '×' + cnt : '—'}</div>
+            <div class="kn-char-name">${ch.ja}</div>
+          </div>`;
+        }).join('');
+
+        bodyHtml = `<div class="kn-char-grid">${charGrid}</div>`;
+
+        // キャラクター不明NFT（属性・名前にキャラ情報なし）
+        if (r.unknownNfts && r.unknownNfts.length > 0) {
+          const unknownChips = r.unknownNfts.map(u =>
+            `<span class="kn-nft-chip" style="background:#fef2f2;border-color:#fecaca;color:#b91c1c;">${u.name || '番号不明'}</span>`
+          ).join('');
+          bodyHtml += `<div style="margin-top:10px;">
+            <div style="font-size:11px;color:#9ca3af;margin-bottom:4px;">⚠️ キャラクター情報なし（番号KAKERAの可能性）</div>
+            <div class="kn-nft-list">${unknownChips}</div>
+          </div>`;
+        }
+      }
+
+      card.innerHTML = `
+        <div class="kn-card-header">
+          <div class="kn-wallet">
+            <button class="copy-btn" onclick="copyAddr(event,'${r.wallet}')" title="コピー">📋</button>
+            ${shortWallet}
+          </div>
+          <span class="kn-badge ${badgeClass}">${badgeText}</span>
+        </div>
+        ${bodyHtml}
+      `;
+      container.appendChild(card);
+    });
+  }
+
+  /** KAKERA NFT 結果をスプレッドシートに出力 */
+  async function exportKakeraNftToSheet() {
+    if (!kakeranftResults || kakeranftResults.length === 0) {
+      setKakeraNftExportStatus('error', '出力する結果がありません'); return;
+    }
+    if (!GAS_EXPORT_URL) {
+      setKakeraNftExportStatus('error', 'GAS_EXPORT_URL が未設定です'); return;
+    }
+
+    const btn = document.getElementById('kakeranftExportBtn');
+    btn.disabled = true;
+    btn.textContent = '出力中...';
+    setKakeraNftExportStatus('', '');
+
+    const rows = kakeranftResults.map(r => ({
+      wallet:       r.wallet,
+      nftCount:     r.nftCount,
+      yama:         r.charCounts.yama     || 0,
+      makami:       r.charCounts.makami   || 0,
+      setsuna:      r.charCounts.setsuna  || 0,
+      mitama:       r.charCounts.mitama   || 0,
+      talt:         r.charCounts.talt     || 0,
+      leelee:       r.charCounts.leelee   || 0,
+      orochi:       r.charCounts.orochi   || 0,
+      luna:         r.charCounts.luna     || 0,
+      ema:          r.charCounts.ema      || 0,
+      narukami:     r.charCounts.narukami || 0,
+      towa:         r.charCounts.towa     || 0,
+      unknownCount: r.charCounts['__unknown__'] || 0,
+      unknownNames: (r.unknownNfts || []).map(u => u.name || '').join(', '),
+      error:        r.error || ''
+    }));
+
+    try {
+      await fetch(GAS_EXPORT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ type: 'kakeranft', results: rows })
+      });
+      setKakeraNftExportStatus('ok', `✅ 出力完了 — <a href="${SHEET_URL}" target="_blank">スプレッドシートを開く ↗</a>`);
+    } catch(e) {
+      setKakeraNftExportStatus('error', '⚠️ 送信エラー: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📊 スプレッドシートに出力';
+    }
+  }
+
+  function setKakeraNftExportStatus(type, html) {
+    const el = document.getElementById('kakeranftExportStatus');
+    el.innerHTML = html;
+    el.className = 's-export-status' + (html ? ' show' : '') + (type === 'error' ? ' error' : '');
   }
 
   // ===== 初期化 =====
