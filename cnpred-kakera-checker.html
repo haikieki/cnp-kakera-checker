@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CNP RED カケラ 交換チェッカー</title>
+  <title>CNP RED ツール</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -26,6 +26,31 @@
     header h1 { color: #fff; font-size: 18px; font-weight: 700; letter-spacing: 0.05em; }
     .dot { width: 10px; height: 10px; background: #fff; border-radius: 50%; opacity: 0.8; }
     .container { width: 100%; max-width: 860px; padding: 32px 20px; }
+
+    /* ===== ページタブナビ ===== */
+    .page-nav {
+      width: 100%;
+      background: #991b1b;
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      border-bottom: 3px solid #7f1d1d;
+    }
+    .page-tab {
+      padding: 12px 28px;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.65);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -3px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .page-tab:hover { color: #fff; background: rgba(255,255,255,0.1); }
+    .page-tab.active { color: #fff; border-bottom-color: #fca5a5; background: rgba(255,255,255,0.08); }
 
     /* Card */
     .card { background: #fff; border-radius: 16px; padding: 28px; box-shadow: 0 4px 20px rgba(0,0,0,0.07); margin-bottom: 20px; }
@@ -196,6 +221,175 @@
     .badge { background: #fee2e2; color: #b91c1c; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
 
     footer { margin-top: auto; padding: 24px; color: #9ca3af; font-size: 12px; text-align: center; }
+
+    /* ===== 個体番号検索 タブ固有スタイル ===== */
+    .search-tabs {
+      display: flex; gap: 0; margin-bottom: 20px;
+      border-bottom: 2px solid #e5e7eb;
+    }
+    .search-tab {
+      padding: 10px 18px;
+      background: none;
+      border: none;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      color: #9ca3af;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .search-tab:hover { color: #b91c1c; background: none; transform: none; }
+    .search-tab.active { color: #b91c1c; border-bottom-color: #b91c1c; }
+
+    .search-tab-content { display: none; }
+    .search-tab-content.active { display: block; }
+
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #374151; }
+    .input-group input[type="number"],
+    .input-group input[type="password"],
+    .input-group input[type="text"] {
+      width: 100%;
+      padding: 10px 14px;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: monospace;
+    }
+    .input-group input:focus { border-color: #b91c1c; }
+
+    .checkbox-group label {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; color: #374151;
+      cursor: pointer; padding: 6px 0;
+    }
+    .checkbox-group input[type="checkbox"] {
+      width: 16px; height: 16px; accent-color: #b91c1c; cursor: pointer;
+    }
+
+    .note-box {
+      background: #fef2f2; color: #b91c1c;
+      padding: 12px 16px; border-radius: 8px;
+      font-size: 12px; margin-top: 14px;
+      border-left: 3px solid #fca5a5;
+    }
+
+    /* 個体番号検索 結果 */
+    .s-results { display: none; }
+    .s-results.show { display: block; }
+
+    .s-loading { display: none; text-align: center; padding: 40px 20px; }
+    .s-loading.show { display: block; }
+    .s-spinner {
+      width: 48px; height: 48px;
+      border: 4px solid #fecaca; border-top-color: #b91c1c;
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    .s-loading p { color: #b91c1c; font-weight: 600; font-size: 14px; }
+    .s-loading small { color: #9ca3af; font-size: 12px; }
+
+    .s-error { display: none; background: #fef2f2; color: #b91c1c; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 13px; }
+    .s-error.show { display: block; }
+
+    .s-results-header {
+      display: flex; justify-content: space-between; align-items: center;
+      padding-bottom: 12px; margin-bottom: 16px;
+      border-bottom: 2px solid #f3f4f6;
+      flex-wrap: wrap; gap: 8px;
+    }
+    .s-results-title { font-size: 16px; font-weight: 700; color: #1a1a1a; }
+    .s-results-info { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+    .user-card {
+      background: #f9fafb; border-radius: 10px; padding: 16px;
+      margin-bottom: 12px; border-left: 4px solid #b91c1c;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .user-card:hover { transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+
+    .user-card-header {
+      display: flex; justify-content: space-between; align-items: flex-start;
+      gap: 10px; margin-bottom: 10px;
+    }
+    .user-wallet {
+      font-family: 'Courier New', monospace; font-size: 12px;
+      color: #b91c1c; word-break: break-all; line-height: 1.5;
+      display: flex; align-items: flex-start; gap: 4px;
+    }
+    .user-badge {
+      background: #b91c1c; color: #fff;
+      padding: 4px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 700; white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .token-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .token-chip {
+      background: #fff; border: 1px solid #e5e7eb;
+      padding: 4px 10px; border-radius: 6px;
+      font-size: 12px; color: #374151;
+    }
+    .token-chip.rare-holo { background: linear-gradient(135deg, #ffd89b, #ff8c42); color: #fff; border: none; font-weight: 700; }
+    .token-chip.rare-rainbow { background: linear-gradient(135deg, #f43f5e, #a855f7, #3b82f6); color: #fff; border: none; font-weight: 700; }
+    .token-chip.rare-armor { background: linear-gradient(135deg, #475569, #1e293b); color: #fff; border: none; font-weight: 700; }
+
+    /* API key settings */
+    .api-key-section {
+      background: #fef2f2; border-radius: 10px; padding: 16px;
+      margin-bottom: 20px; border: 1px solid #fecaca;
+    }
+    .api-key-section summary {
+      font-size: 13px; font-weight: 600; color: #b91c1c;
+      cursor: pointer; user-select: none;
+    }
+    .api-key-section summary:hover { opacity: 0.8; }
+    .api-key-inner { margin-top: 12px; display: flex; gap: 8px; align-items: flex-end; }
+    .api-key-inner input {
+      flex: 1; padding: 9px 12px;
+      border: 1.5px solid #fecaca; border-radius: 8px;
+      font-family: monospace; font-size: 13px; outline: none;
+    }
+    .api-key-inner input:focus { border-color: #b91c1c; }
+    .api-key-save-btn {
+      padding: 9px 18px; font-size: 13px;
+      background: #b91c1c; color: #fff;
+      border: none; border-radius: 8px; cursor: pointer;
+      white-space: nowrap;
+    }
+    .api-key-save-btn:hover { background: #991b1b; }
+    .api-key-status { font-size: 11px; color: #9ca3af; margin-top: 6px; }
+    .api-key-status.ok { color: #16a34a; }
+    .api-key-status.ng { color: #b91c1c; }
+
+    /* スプレッドシート出力ボタン */
+    .export-sheet-btn {
+      padding: 9px 18px;
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    .export-sheet-btn:hover { opacity: 0.85; }
+    .export-sheet-btn:disabled { background: #9ca3af; cursor: not-allowed; transform: none; }
+
+    .s-export-status {
+      font-size: 12px; padding: 0; max-height: 0; overflow: hidden;
+      transition: max-height 0.3s, padding 0.3s;
+    }
+    .s-export-status.show {
+      max-height: 60px; padding: 10px 0 4px;
+    }
+    .s-export-status a { color: #15803d; font-weight: 600; }
+    .s-export-status.error { color: #b91c1c; }
   </style>
 </head>
 <body>
@@ -203,10 +397,17 @@
 <header>
   <div class="dot"></div>
   <div class="dot"></div>
-  <h1>CNP RED カケラ 交換チェッカー</h1>
+  <h1>CNP RED ツール</h1>
 </header>
 
-<div class="container">
+<!-- ページタブナビ -->
+<nav class="page-nav">
+  <button class="page-tab active" onclick="switchPageTab('kakera', this)">🔥 カケラ交換チェッカー</button>
+  <button class="page-tab" onclick="switchPageTab('search', this)">🔍 個体番号検索</button>
+</nav>
+
+<!-- ========== タブ1: カケラ交換チェッカー ========== -->
+<div id="page-kakera" class="container">
 
   <!-- Input Card -->
   <div class="card">
@@ -283,12 +484,599 @@ So11111111111111111111111111111111111111112"></textarea>
       </div>
     </div>
 
+    <!-- カケラ出力ボタン -->
+    <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-top:12px; flex-wrap:wrap;">
+      <div class="s-export-status" id="kakera-exportStatus"></div>
+      <button class="export-sheet-btn" id="kakeraExportBtn" onclick="exportKakeraToSheet()">
+        📊 スプレッドシートに出力
+      </button>
+    </div>
+
   </div>
 </div>
 
-<footer>CNP RED カケラ 交換チェッカー — 非公式ツール</footer>
+<!-- ========== タブ2: 個体番号検索 ========== -->
+<div id="page-search" class="container" style="display:none;">
+
+  <!-- API Key 設定 -->
+  <details class="api-key-section" id="apiKeyDetails">
+    <summary>⚙️ Helius API Key 設定</summary>
+    <div class="api-key-inner">
+      <input type="password" id="apiKeyInput" placeholder="Helius API Key（https://www.helius.dev/ で取得）">
+      <button class="api-key-save-btn" onclick="saveApiKey()">保存</button>
+    </div>
+    <div class="api-key-status" id="apiKeyStatus"></div>
+  </details>
+
+  <!-- 検索カード -->
+  <div class="card">
+    <div class="card-title">NFT 検索</div>
+    <div class="card-subtitle">CNP RED 個体番号検索</div>
+
+    <!-- サブタブ -->
+    <div class="search-tabs">
+      <button class="search-tab active" onclick="switchSearchTab('tokenId', this)">個体番号で検索</button>
+      <button class="search-tab" onclick="switchSearchTab('rarity', this)">レア特性で検索</button>
+      <button class="search-tab" onclick="switchSearchTab('wallet', this)">ウォレットで検索</button>
+    </div>
+
+    <!-- 個体番号検索 -->
+    <div id="stab-tokenId" class="search-tab-content active">
+      <div class="input-group">
+        <label for="minTokenId">個体番号（この番号以上を検索）</label>
+        <input type="number" id="minTokenId" placeholder="例: 2001" value="2001" min="1">
+      </div>
+      <div class="btn-row">
+        <button onclick="doSearchTokenId()">🔍 検索</button>
+      </div>
+      <div class="note-box">⏱️ 検索には30秒〜2分程度かかります（全NFTを取得するため）</div>
+    </div>
+
+    <!-- レア特性検索 -->
+    <div id="stab-rarity" class="search-tab-content">
+      <div class="input-group">
+        <label>レア特性を選択</label>
+        <div class="checkbox-group">
+          <label><input type="checkbox" id="chkHologram" checked> ✨ Hologram（ホログラム）</label>
+          <label><input type="checkbox" id="chkRainbow" checked> 🌈 Rainbow（レインボー）</label>
+          <label><input type="checkbox" id="chkArmor" checked> ⚔️ Armor（武将）</label>
+        </div>
+      </div>
+      <div class="input-group">
+        <label for="minTokenIdRarity">個体番号の条件（オプション）</label>
+        <input type="number" id="minTokenIdRarity" placeholder="例: 2001（指定すればこの番号以上のみ）" min="1">
+      </div>
+      <div class="btn-row">
+        <button onclick="doSearchRarity()">🔍 検索</button>
+      </div>
+      <div class="note-box">
+        ⏱️ 検索には30秒〜2分程度かかります<br>
+        💡 個体番号を指定すると「指定番号以上 かつ レア特性」で絞り込めます
+      </div>
+    </div>
+
+    <!-- ウォレット検索 -->
+    <div id="stab-wallet" class="search-tab-content">
+      <div class="input-group">
+        <label>ウォレットアドレス（複数の場合は改行で区切る）</label>
+        <textarea id="walletInput" placeholder="例:
+7XaT...4kpQ
+9Abc...xyz1
+3Def...mnp2" style="height: 120px;"></textarea>
+      </div>
+      <div class="btn-row">
+        <button onclick="doSearchWallet()">🔍 検索</button>
+      </div>
+      <div class="note-box">⏱️ 検索には30秒〜2分程度かかります（複数ウォレット検索可能）</div>
+    </div>
+  </div>
+
+  <!-- エラー表示 -->
+  <div class="s-error" id="sError"></div>
+
+  <!-- ローディング -->
+  <div class="s-loading" id="sLoading">
+    <div class="s-spinner"></div>
+    <p>NFTデータを取得中...</p>
+    <small id="sLoadingProgress">しばらくお待ちください</small>
+  </div>
+
+  <!-- 結果表示 -->
+  <div class="s-results card" id="sResults">
+    <div class="s-results-header">
+      <div>
+        <div class="s-results-title" id="sResultsTitle">検索結果</div>
+        <div class="s-results-info" id="sResultsInfo"></div>
+      </div>
+      <button class="export-sheet-btn" id="exportSheetBtn" onclick="exportToSheet()">
+        📊 スプレッドシートに出力
+      </button>
+    </div>
+    <div class="s-export-status" id="exportStatus"></div>
+    <div id="sResultsContainer"></div>
+  </div>
+
+</div>
+
+<footer>CNP RED ツール — 非公式ツール</footer>
 
 <script>
+  // ===== ページタブ切り替え =====
+  function switchPageTab(tabId, btn) {
+    document.querySelectorAll('.page-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('page-kakera').style.display = tabId === 'kakera' ? '' : 'none';
+    document.getElementById('page-search').style.display = tabId === 'search' ? '' : 'none';
+  }
+
+  // ===== 検索サブタブ切り替え =====
+  function switchSearchTab(tabId, btn) {
+    document.querySelectorAll('.search-tab').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.querySelectorAll('.search-tab-content').forEach(c => c.classList.remove('active'));
+    document.getElementById('stab-' + tabId).classList.add('active');
+    hideSError(); hideSResults();
+  }
+
+  // ===== GAS Web App URL (スプレッドシート出力用) =====
+  // ★ GASをデプロイしたあと、ウェブアプリのURLをここに貼り付けてください
+  const GAS_EXPORT_URL = 'https://script.google.com/macros/s/AKfycbycfXci2RVKXbqs36MlZb9xkDj6LfSM6xVSPNE-oyVdOAmt0v-NjJlwp5uKEWLkCPVo/exec';
+
+  // 出力先スプレッドシートURL（確認用リンクに使用）
+  const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1vKKnN3IlI_ZQZpka9xrz9QS399IeljbqsnE4xBgR_zM/edit';
+
+  // 現在の検索状態（出力に使用）
+  let currentSearch = null; // { type, params, results }
+
+  // ===== API Key 管理 =====
+  // ★ ここにAPIキーを直接書いておくと、UI入力欄が非表示になります
+  const HELIUS_API_KEY_PRESET = 'c1c81677-d8f9-49de-b955-a3c0b1d63740';
+
+  const LS_KEY = 'helius_api_key';
+
+  function getApiKey() {
+    return HELIUS_API_KEY_PRESET || localStorage.getItem(LS_KEY) || '';
+  }
+
+  function loadApiKey() {
+    if (HELIUS_API_KEY_PRESET) {
+      // 事前設定済み → UI欄を完全に隠す
+      document.getElementById('apiKeyDetails').style.display = 'none';
+      return;
+    }
+    const key = localStorage.getItem(LS_KEY) || '';
+    if (key) {
+      document.getElementById('apiKeyInput').value = key;
+      setApiKeyStatus(true);
+    } else {
+      setApiKeyStatus(false);
+      document.getElementById('apiKeyDetails').open = true;
+    }
+  }
+
+  function saveApiKey() {
+    const key = document.getElementById('apiKeyInput').value.trim();
+    if (!key) { setApiKeyStatus(false); return; }
+    localStorage.setItem(LS_KEY, key);
+    setApiKeyStatus(true);
+    document.getElementById('apiKeyDetails').open = false;
+  }
+
+  function setApiKeyStatus(ok) {
+    const el = document.getElementById('apiKeyStatus');
+    if (ok) {
+      el.textContent = '✅ API Keyが設定されています';
+      el.className = 'api-key-status ok';
+    } else {
+      el.textContent = '⚠️ API Keyが未設定です。helius.dev で取得してください。';
+      el.className = 'api-key-status ng';
+    }
+  }
+
+  // ===== Helius API =====
+  const COLLECTION_ADDRESS = 'ALaC3msikc7MFJeVywFBiGLBfM7f4Uoy1gXWu4S3xJie';
+
+  async function fetchAllNFTs() {
+    const apiKey = getApiKey();
+    if (!apiKey) throw new Error('Helius API Keyが設定されていません。上部の設定から入力してください。');
+
+    const url = 'https://mainnet.helius-rpc.com/?api-key=' + apiKey;
+    const allNFTs = [];
+    let page = 1;
+    let hasMore = true;
+
+    while (hasMore && page <= 10) {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jsonrpc: '2.0', id: 'cnpred-search',
+          method: 'getAssetsByGroup',
+          params: {
+            groupKey: 'collection',
+            groupValue: COLLECTION_ADDRESS,
+            page: page,
+            limit: 1000
+          }
+        })
+      });
+
+      if (!resp.ok) throw new Error('APIエラー: ' + resp.status);
+      const data = await resp.json();
+
+      if (data.error) throw new Error('Helius API エラー: ' + JSON.stringify(data.error));
+
+      const items = data.result && data.result.items ? data.result.items : [];
+      items.forEach(item => {
+        allNFTs.push({
+          mint:       item.id,
+          owner:      item.ownership && item.ownership.owner ? item.ownership.owner : 'Unknown',
+          name:       item.content && item.content.metadata && item.content.metadata.name
+                        ? item.content.metadata.name : '',
+          attributes: item.content && item.content.metadata && item.content.metadata.attributes
+                        ? item.content.metadata.attributes : []
+        });
+      });
+
+      updateLoadingProgress('ページ ' + page + ' 取得完了（' + allNFTs.length + '件）');
+      hasMore = items.length === 1000;
+      page++;
+      if (hasMore) await sleep(300);
+    }
+    return allNFTs;
+  }
+
+  function extractTokenId(nft) {
+    try {
+      if (nft.name) {
+        const m1 = nft.name.match(/#(\d+)/);
+        if (m1) return parseInt(m1[1]);
+        const m2 = nft.name.match(/(\d+)$/);
+        if (m2) return parseInt(m2[1]);
+      }
+      for (const attr of (nft.attributes || [])) {
+        if (['Token ID','ID','Number','token_id'].indexOf(attr.trait_type) !== -1) {
+          return parseInt(attr.value);
+        }
+      }
+    } catch(e) {}
+    return 0;
+  }
+
+  function extractRarity(nft) {
+    try {
+      for (const attr of (nft.attributes || [])) {
+        const tt = (attr.trait_type || '').toLowerCase();
+        const vv = (attr.value || '').toLowerCase();
+        if (tt.includes('hologram') || vv.includes('hologram') || attr.trait_type === 'ホログラム' || attr.value === 'ホログラム') return 'Hologram';
+        if (tt.includes('rainbow')  || vv.includes('rainbow')  || attr.trait_type === 'レインボー'  || attr.value === 'レインボー')  return 'Rainbow';
+        if (tt.includes('armor')    || vv.includes('armor')    || attr.trait_type === '武将'        || attr.value === '武将'        || tt.includes('bushou')) return 'Armor';
+      }
+      if (nft.name) {
+        const nl = nft.name.toLowerCase();
+        if (nl.includes('hologram') || nft.name.includes('ホログラム')) return 'Hologram';
+        if (nl.includes('rainbow')  || nft.name.includes('レインボー'))  return 'Rainbow';
+        if (nl.includes('armor')    || nft.name.includes('武将'))        return 'Armor';
+      }
+    } catch(e) {}
+    return null;
+  }
+
+  function buildSortedResults(userMap, hasRarity) {
+    const results = [];
+    for (const wallet in userMap) {
+      const user = userMap[wallet];
+      const sorted = user.tokenIds.map((id, i) => ({
+        tokenId: id, name: user.names[i],
+        rarity: hasRarity ? user.rarities[i] : null
+      })).sort((a,b) => a.tokenId - b.tokenId);
+
+      const result = {
+        wallet,
+        count: sorted.length,
+        tokenIds: sorted.map(d => d.tokenId),
+        names: sorted.map(d => d.name)
+      };
+      if (hasRarity) result.rarities = sorted.map(d => d.rarity);
+      results.push(result);
+    }
+    return results.sort((a,b) => b.count - a.count);
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  // ===== 検索実行 =====
+  async function doSearchTokenId() {
+    const minTokenId = parseInt(document.getElementById('minTokenId').value);
+    if (!minTokenId || minTokenId < 1) { showSError('有効な個体番号を入力してください'); return; }
+
+    showSLoading(); hideSError(); hideSResults();
+    try {
+      const nfts = await fetchAllNFTs();
+      const userMap = {};
+      nfts.forEach(nft => {
+        const tokenId = extractTokenId(nft);
+        if (tokenId >= minTokenId) {
+          const owner = nft.owner;
+          if (!userMap[owner]) userMap[owner] = { wallet: owner, tokenIds: [], names: [] };
+          userMap[owner].tokenIds.push(tokenId);
+          userMap[owner].names.push(nft.name || '#' + tokenId);
+        }
+      });
+      const results = buildSortedResults(userMap, false);
+      const totalNFTs = results.reduce((s,u) => s + u.count, 0);
+      currentSearch = { type: 'tokenId', params: { minTokenId }, results };
+      displayResults(
+        '個体番号 ' + minTokenId + '以上の保有者',
+        results.length + '人 / ' + totalNFTs + '個体',
+        results, false
+      );
+    } catch(e) {
+      showSError(e.message);
+    } finally {
+      hideSLoading();
+    }
+  }
+
+  async function doSearchRarity() {
+    const rarities = [];
+    if (document.getElementById('chkHologram').checked) rarities.push('Hologram');
+    if (document.getElementById('chkRainbow').checked)  rarities.push('Rainbow');
+    if (document.getElementById('chkArmor').checked)    rarities.push('Armor');
+    if (rarities.length === 0) { showSError('少なくとも1つのレア特性を選択してください'); return; }
+
+    const minTokenId = parseInt(document.getElementById('minTokenIdRarity').value) || 0;
+
+    showSLoading(); hideSError(); hideSResults();
+    try {
+      const nfts = await fetchAllNFTs();
+      const userMap = {};
+      nfts.forEach(nft => {
+        const tokenId = extractTokenId(nft);
+        const rarity = extractRarity(nft);
+        if (!rarity || !rarities.includes(rarity)) return;
+        if (minTokenId > 0 && tokenId < minTokenId) return;
+
+        const owner = nft.owner;
+        if (!userMap[owner]) userMap[owner] = { wallet: owner, tokenIds: [], names: [], rarities: [] };
+        userMap[owner].tokenIds.push(tokenId);
+        userMap[owner].names.push(nft.name || '#' + tokenId);
+        userMap[owner].rarities.push(rarity);
+      });
+      const results = buildSortedResults(userMap, true);
+      const totalNFTs = results.reduce((s,u) => s + u.count, 0);
+      const tokenIdNote = minTokenId > 0 ? '（個体番号' + minTokenId + '以上）' : '';
+      currentSearch = { type: 'rarity', params: { rarities, minTokenId }, results };
+      displayResults(
+        'レア特性: ' + rarities.join(' / ') + tokenIdNote,
+        results.length + '人 / ' + totalNFTs + '個体',
+        results, true
+      );
+    } catch(e) {
+      showSError(e.message);
+    } finally {
+      hideSLoading();
+    }
+  }
+
+  async function doSearchWallet() {
+    const input = document.getElementById('walletInput').value.trim();
+    if (!input) { showSError('ウォレットアドレスを入力してください'); return; }
+    const wallets = input.split(/[\n,\s]+/).map(w => w.trim()).filter(w => w.length > 20);
+    if (wallets.length === 0) { showSError('有効なウォレットアドレスを入力してください'); return; }
+
+    showSLoading(); hideSError(); hideSResults();
+    try {
+      const nfts = await fetchAllNFTs();
+      const walletSet = new Set(wallets);
+      const userMap = {};
+      nfts.forEach(nft => {
+        if (!walletSet.has(nft.owner)) return;
+        const owner = nft.owner;
+        if (!userMap[owner]) userMap[owner] = { wallet: owner, tokenIds: [], names: [] };
+        userMap[owner].tokenIds.push(extractTokenId(nft));
+        userMap[owner].names.push(nft.name || '');
+      });
+
+      // 入力順に並べ、保有0のウォレットも表示
+      const results = wallets.map(wallet => {
+        if (userMap[wallet]) {
+          const sorted = userMap[wallet].tokenIds.map((id,i) => ({ tokenId: id, name: userMap[wallet].names[i] }))
+            .sort((a,b) => a.tokenId - b.tokenId);
+          return { wallet, count: sorted.length, tokenIds: sorted.map(d=>d.tokenId), names: sorted.map(d=>d.name) };
+        }
+        return { wallet, count: 0, tokenIds: [], names: [] };
+      });
+
+      const totalNFTs = results.reduce((s,u) => s + u.count, 0);
+      currentSearch = { type: 'wallet', params: {}, results };
+      displayResults(
+        'ウォレット保有NFT',
+        wallets.length + 'ウォレット / ' + totalNFTs + '個体',
+        results, false
+      );
+    } catch(e) {
+      showSError(e.message);
+    } finally {
+      hideSLoading();
+    }
+  }
+
+  // ===== 結果描画 =====
+  function displayResults(title, info, results, showRarity) {
+    document.getElementById('sResultsTitle').textContent = title;
+    document.getElementById('sResultsInfo').textContent = info;
+
+    const container = document.getElementById('sResultsContainer');
+    container.innerHTML = '';
+
+    if (results.length === 0) {
+      container.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:32px;">該当する保有者が見つかりませんでした</p>';
+    } else {
+      results.forEach(user => container.appendChild(createUserCard(user, showRarity)));
+    }
+
+    showSResults();
+  }
+
+  function createUserCard(user, showRarity) {
+    const card = document.createElement('div');
+    card.className = 'user-card';
+
+    const shortWallet = user.wallet.length > 20
+      ? user.wallet.slice(0,8) + '...' + user.wallet.slice(-8)
+      : user.wallet;
+
+    card.innerHTML = `
+      <div class="user-card-header">
+        <div class="user-wallet">
+          <span title="${user.wallet}">${shortWallet}</span>
+          <button class="copy-btn" onclick="copyText(event,'${user.wallet}')" title="コピー">📋</button>
+        </div>
+        <div class="user-badge">${user.count}個体</div>
+      </div>
+      <div class="token-list" id="tlist-${Math.random().toString(36).slice(2)}"></div>
+    `;
+
+    const tokenList = card.querySelector('.token-list');
+    if (user.count === 0) {
+      tokenList.innerHTML = '<span style="color:#9ca3af;font-size:12px;">NFTなし</span>';
+    } else {
+      user.tokenIds.forEach((id, i) => {
+        const chip = document.createElement('div');
+        chip.className = 'token-chip';
+        const rarity = showRarity && user.rarities ? user.rarities[i] : null;
+        if (rarity === 'Hologram') chip.className += ' rare-holo';
+        else if (rarity === 'Rainbow') chip.className += ' rare-rainbow';
+        else if (rarity === 'Armor') chip.className += ' rare-armor';
+
+        const icon = rarity === 'Hologram' ? '✨' : rarity === 'Rainbow' ? '🌈' : rarity === 'Armor' ? '⚔️' : '';
+        chip.textContent = (icon ? icon + ' ' : '') + '#' + id;
+        chip.title = (user.names[i] || '') + (rarity ? ' (' + rarity + ')' : '');
+        tokenList.appendChild(chip);
+      });
+    }
+
+    return card;
+  }
+
+  // ===== カケラ交換チェッカー スプレッドシート出力 =====
+  async function exportKakeraToSheet() {
+    if (!allResults || allResults.length === 0) {
+      setKakeraExportStatus('error', '出力する結果がありません');
+      return;
+    }
+    if (!GAS_EXPORT_URL) {
+      setKakeraExportStatus('error', 'GAS_EXPORT_URL が未設定です');
+      return;
+    }
+
+    const btn = document.getElementById('kakeraExportBtn');
+    btn.disabled = true;
+    btn.textContent = '出力中...';
+    setKakeraExportStatus('', '');
+
+    // 表示中の並び順・フィルタ結果を使用
+    const rows = (window._filteredRows || allResults).map(r => ({
+      address:       r.address,
+      exchangeCount: r.exchangeCount,
+      latestDate:    (() => {
+        const h = (r.transferHistories || []).filter(h => h.createdAt)
+          .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        return h ? new Date(h.createdAt).toLocaleString('ja-JP', { timeZone:'Asia/Tokyo' }) : '';
+      })(),
+      error: r.error || ''
+    }));
+
+    try {
+      await fetch(GAS_EXPORT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({ type: 'kakera', results: rows })
+      });
+      setKakeraExportStatus('ok', `✅ 出力完了 — <a href="${SHEET_URL}" target="_blank">スプレッドシートを開く ↗</a>`);
+    } catch(e) {
+      setKakeraExportStatus('error', '⚠️ 送信エラー: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📊 スプレッドシートに出力';
+    }
+  }
+
+  function setKakeraExportStatus(type, html) {
+    const el = document.getElementById('kakera-exportStatus');
+    el.innerHTML = html;
+    el.className = 's-export-status' + (html ? ' show' : '') + (type === 'error' ? ' error' : '');
+  }
+
+  // ===== 個体番号検索 スプレッドシート出力 =====
+  async function exportToSheet() {
+    if (!currentSearch || currentSearch.results.length === 0) {
+      setExportStatus('error', '出力する結果がありません');
+      return;
+    }
+    if (!GAS_EXPORT_URL) {
+      setExportStatus('error', 'GAS_EXPORT_URL が未設定です。HTMLファイル内の定数を設定してください。');
+      return;
+    }
+
+    const btn = document.getElementById('exportSheetBtn');
+    btn.disabled = true;
+    btn.textContent = '出力中...';
+    setExportStatus('', '');
+
+    try {
+      await fetch(GAS_EXPORT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain' },
+        body: JSON.stringify({
+          type:    currentSearch.type,
+          params:  currentSearch.params,
+          results: currentSearch.results
+        })
+      });
+      // no-cors のためレスポンスは読めないが、送信は完了している
+      setExportStatus('ok', `✅ 出力完了 — <a href="${SHEET_URL}" target="_blank">スプレッドシートを開く ↗</a>`);
+    } catch(e) {
+      setExportStatus('error', '⚠️ 送信エラー: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '📊 スプレッドシートに出力';
+    }
+  }
+
+  function setExportStatus(type, html) {
+    const el = document.getElementById('exportStatus');
+    el.innerHTML = html;
+    el.className = 's-export-status' + (html ? ' show' : '') + (type === 'error' ? ' error' : '');
+  }
+
+  // ===== UI ヘルパー =====
+  function showSLoading() { document.getElementById('sLoading').classList.add('show'); }
+  function hideSLoading() { document.getElementById('sLoading').classList.remove('show'); }
+  function showSResults() { document.getElementById('sResults').classList.add('show'); }
+  function hideSResults() { document.getElementById('sResults').classList.remove('show'); }
+  function showSError(msg) {
+    const el = document.getElementById('sError');
+    el.textContent = '⚠️ ' + msg;
+    el.classList.add('show');
+  }
+  function hideSError() { document.getElementById('sError').classList.remove('show'); }
+  function updateLoadingProgress(msg) {
+    document.getElementById('sLoadingProgress').textContent = msg;
+  }
+
+  function copyText(event, text) {
+    event.stopPropagation();
+    navigator.clipboard.writeText(text).catch(() => {});
+    const btn = event.target;
+    btn.textContent = '✅';
+    setTimeout(() => btn.textContent = '📋', 1500);
+  }
+
+  // ===== カケラ交換チェッカー（既存コード） =====
   const API_BASE = 'https://cnp-red-server-279993580412.asia-northeast1.run.app';
   const CORS_PROXY = 'https://corsproxy.io/?url=';
 
@@ -299,9 +1087,8 @@ So11111111111111111111111111111111111111112"></textarea>
     towa:'トワ', yama:'ヤーマ', yamaMitama:'ヤーマ＆ミタマ', mitama:'ミタマ'
   };
 
-  let allResults = []; // { address, exchangeCount, transferHistories, error }
+  let allResults = [];
 
-  // Address input counter
   document.getElementById('addrInput').addEventListener('input', updateCount);
   function updateCount() {
     const addrs = parseAddresses();
@@ -311,9 +1098,7 @@ So11111111111111111111111111111111111111112"></textarea>
 
   function parseAddresses() {
     return document.getElementById('addrInput').value
-      .split('\n')
-      .map(l => l.trim())
-      .filter(l => l.length > 20);
+      .split('\n').map(l => l.trim()).filter(l => l.length > 20);
   }
 
   function clearAll() {
@@ -343,16 +1128,11 @@ So11111111111111111111111111111111111111112"></textarea>
 
   async function startSearch() {
     const addresses = parseAddresses();
-    if (addresses.length === 0) {
-      document.getElementById('addrInput').focus();
-      return;
-    }
+    if (addresses.length === 0) { document.getElementById('addrInput').focus(); return; }
 
     const btn = document.getElementById('searchBtn');
-    btn.disabled = true;
-    btn.textContent = '検索中...';
+    btn.disabled = true; btn.textContent = '検索中...';
 
-    // Show progress
     const progressWrap = document.getElementById('progressWrap');
     progressWrap.style.display = 'block';
     document.getElementById('resultsSection').style.display = 'none';
@@ -369,19 +1149,13 @@ So11111111111111111111111111111111111111112"></textarea>
       document.getElementById('progressText').textContent = '照会中... ' + pct + '%';
     }
 
-    // Fetch all in parallel (batches of 5 to avoid rate limiting)
     const BATCH = 5;
     for (let i = 0; i < addresses.length; i += BATCH) {
       const batch = addresses.slice(i, i + BATCH);
       await Promise.all(batch.map(async (address) => {
         try {
           const data = await apiFetch(address);
-          allResults.push({
-            address,
-            exchangeCount: data.exchangeCount || 0,
-            transferHistories: data.transferHistories || [],
-            error: null
-          });
+          allResults.push({ address, exchangeCount: data.exchangeCount || 0, transferHistories: data.transferHistories || [], error: null });
         } catch (e) {
           allResults.push({ address, exchangeCount: 0, transferHistories: [], error: e.message });
         }
@@ -389,12 +1163,9 @@ So11111111111111111111111111111111111111112"></textarea>
       }));
     }
 
-    btn.disabled = false;
-    btn.textContent = '🔍 一括検索';
+    btn.disabled = false; btn.textContent = '🔍 一括検索';
     progressWrap.style.display = 'none';
-
-    renderStats();
-    applyFilter();
+    renderStats(); applyFilter();
     document.getElementById('resultsSection').style.display = 'block';
   }
 
@@ -404,7 +1175,6 @@ So11111111111111111111111111111111111111112"></textarea>
     const totalExchanges = successful.reduce((s, r) => s + r.exchangeCount, 0);
     const maxExchange = successful.length ? Math.max(...successful.map(r => r.exchangeCount)) : 0;
     const exchangedCount = successful.filter(r => r.exchangeCount > 0).length;
-
     document.getElementById('statsRow').innerHTML = `
       <div class="stat-box"><div class="stat-value">${total}</div><div class="stat-label">検索アドレス数</div></div>
       <div class="stat-box"><div class="stat-value">${exchangedCount}</div><div class="stat-label">交換済みアドレス</div></div>
@@ -415,9 +1185,7 @@ So11111111111111111111111111111111111111112"></textarea>
 
   function applyFilter() {
     const minVal = parseInt(document.getElementById('filterMin').value) || 0;
-    const maxVal = document.getElementById('filterMax').value !== ''
-      ? parseInt(document.getElementById('filterMax').value)
-      : Infinity;
+    const maxVal = document.getElementById('filterMax').value !== '' ? parseInt(document.getElementById('filterMax').value) : Infinity;
     const sortVal = document.getElementById('sortSelect').value;
 
     let filtered = allResults.filter(r => r.exchangeCount >= minVal && r.exchangeCount <= maxVal);
@@ -426,11 +1194,11 @@ So11111111111111111111111111111111111111112"></textarea>
       const dates = (r.transferHistories || []).map(h => h.createdAt ? new Date(h.createdAt).getTime() : 0);
       return dates.length ? Math.max(...dates) : 0;
     };
-    if (sortVal === 'count_desc') filtered.sort((a, b) => b.exchangeCount - a.exchangeCount);
-    else if (sortVal === 'count_asc') filtered.sort((a, b) => a.exchangeCount - b.exchangeCount);
-    else if (sortVal === 'date_desc') filtered.sort((a, b) => getLatestDate(b) - getLatestDate(a));
-    else if (sortVal === 'date_asc') filtered.sort((a, b) => getLatestDate(a) - getLatestDate(b));
-    else filtered.sort((a, b) => a.address.localeCompare(b.address));
+    if (sortVal === 'count_desc') filtered.sort((a,b) => b.exchangeCount - a.exchangeCount);
+    else if (sortVal === 'count_asc') filtered.sort((a,b) => a.exchangeCount - b.exchangeCount);
+    else if (sortVal === 'date_desc') filtered.sort((a,b) => getLatestDate(b) - getLatestDate(a));
+    else if (sortVal === 'date_asc') filtered.sort((a,b) => getLatestDate(a) - getLatestDate(b));
+    else filtered.sort((a,b) => a.address.localeCompare(b.address));
 
     document.getElementById('filteredCount').textContent = filtered.length + ' 件表示中';
     renderTable(filtered);
@@ -448,15 +1216,14 @@ So11111111111111111111111111111111111111112"></textarea>
     rows.forEach((r, i) => {
       const rank = i + 1;
       const rankClass = rank <= 3 ? 'rank-' + rank : '';
-      const shortAddr = r.address.slice(0, 6) + '...' + r.address.slice(-6);
+      const shortAddr = r.address.slice(0,6) + '...' + r.address.slice(-6);
       const countClass = r.exchangeCount === 0 ? 'count-zero' : '';
 
-      // 最終交換日時を算出
       const latestHistory = (r.transferHistories || [])
         .filter(h => h.createdAt)
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+        .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
       const latestDateStr = latestHistory
-        ? new Date(latestHistory.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+        ? new Date(latestHistory.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
         : '<span style="color:#d1d5db;">—</span>';
 
       const tr = document.createElement('tr');
@@ -476,7 +1243,6 @@ So11111111111111111111111111111111111111112"></textarea>
       `;
       tbody.appendChild(tr);
 
-      // Detail expand row (hidden)
       const expandTr = document.createElement('tr');
       expandTr.className = 'expand-row';
       expandTr.id = 'expand-' + i;
@@ -485,8 +1251,9 @@ So11111111111111111111111111111111111111112"></textarea>
       tbody.appendChild(expandTr);
     });
 
-    // Store filtered for expand use
     window._filteredRows = rows;
+    document.getElementById('kakeraExportBtn').style.display = rows.length > 0 ? '' : 'none';
+    document.getElementById('kakera-exportStatus').className = 's-export-status';
   }
 
   function toggleDetail(event, btn, address, idx) {
@@ -494,38 +1261,24 @@ So11111111111111111111111111111111111111112"></textarea>
     const expandRow = document.getElementById('expand-' + idx);
     const inner = document.getElementById('expand-inner-' + idx);
     const isOpen = expandRow.style.display !== 'none';
-
     if (isOpen) {
-      expandRow.style.display = 'none';
-      btn.textContent = '詳細 ▼';
+      expandRow.style.display = 'none'; btn.textContent = '詳細 ▼';
     } else {
-      expandRow.style.display = 'table-row';
-      btn.textContent = '閉じる ▲';
+      expandRow.style.display = 'table-row'; btn.textContent = '閉じる ▲';
       renderDetail(inner, window._filteredRows[idx]);
     }
   }
 
   function renderDetail(container, r) {
     const histories = r.transferHistories || [];
-    if (r.error) {
-      container.innerHTML = `<div class="no-history">⚠️ 取得エラー: ${r.error}</div>`;
-      return;
-    }
-    if (histories.length === 0) {
-      container.innerHTML = `<div class="no-history">📭 送付履歴はありません</div>`;
-      return;
-    }
+    if (r.error) { container.innerHTML = `<div class="no-history">⚠️ 取得エラー: ${r.error}</div>`; return; }
+    if (histories.length === 0) { container.innerHTML = `<div class="no-history">📭 送付履歴はありません</div>`; return; }
 
     const rows = histories.map((h, i) => {
-      const assets = (h.assets || []).map(a =>
-        `<span class="asset-chip">${CHARACTER_LABELS[a] || a}</span>`
-      ).join('');
-      const txShort = h.transactionId
-        ? h.transactionId.slice(0,8) + '...' + h.transactionId.slice(-8) : '—';
-      const txLink = h.transactionId
-        ? `<a class="tx-link" href="https://solscan.io/tx/${h.transactionId}" target="_blank">${txShort} ↗</a>` : '—';
-      const date = h.createdAt
-        ? new Date(h.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '—';
+      const assets = (h.assets || []).map(a => `<span class="asset-chip">${CHARACTER_LABELS[a] || a}</span>`).join('');
+      const txShort = h.transactionId ? h.transactionId.slice(0,8) + '...' + h.transactionId.slice(-8) : '—';
+      const txLink = h.transactionId ? `<a class="tx-link" href="https://solscan.io/tx/${h.transactionId}" target="_blank">${txShort} ↗</a>` : '—';
+      const date = h.createdAt ? new Date(h.createdAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' }) : '—';
       return `<tr>
         <td style="color:#9ca3af;font-size:11px;">${i+1}</td>
         <td>${txLink}</td>
@@ -549,6 +1302,9 @@ So11111111111111111111111111111111111111112"></textarea>
     btn.textContent = '✅';
     setTimeout(() => btn.textContent = '📋', 1500);
   }
+
+  // ===== 初期化 =====
+  loadApiKey();
 </script>
 </body>
 </html>
