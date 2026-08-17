@@ -406,6 +406,7 @@
   <button class="page-tab" onclick="switchPageTab('search', this)">🔍 個体番号検索</button>
   <button class="page-tab" onclick="switchPageTab('complete', this)">🏆 コンプリートチェック</button>
   <button class="page-tab" onclick="switchPageTab('kakeranft', this)">💎 KAKERA保有チェック</button>
+
 </nav>
 
 <!-- ========== タブ1: カケラ交換チェッカー ========== -->
@@ -842,6 +843,91 @@ So11111111111111111111111111111111111111112"></textarea>
   }
 </style>
 
+<div id="page-seller" style="display:none;">
+
+  <div class="card">
+    <div class="card-title">Seller Extraction</div>
+    <div class="card-subtitle">💰 売却者アドレス抽出</div>
+    <p style="font-size:13px;color:#6b7280;margin-bottom:16px;">
+      CNP REDコレクションのNFTをマーケットプレイスで売却したアドレスを抽出します
+    </p>
+    <div class="note-box">
+      ⏱️ コレクション全件取得後、売却イベントを検索します（数分かかります）<br>
+      💡 Magic Eden・Tensor 等のマーケットプレイスでの売却履歴が対象です
+    </div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button id="sellerSearchBtn" onclick="doSellerSearch()">🔍 売却者を検索</button>
+      <button class="btn-ghost" onclick="clearSellerSearch()">クリア</button>
+    </div>
+  </div>
+
+  <!-- プログレス -->
+  <div class="progress-wrap" id="sellerProgressWrap" style="display:none;">
+    <div class="progress-label">
+      <span id="sellerProgressText">取得中...</span>
+      <span id="sellerProgressNum"></span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="sellerProgressFill"></div></div>
+  </div>
+
+  <!-- エラー -->
+  <div class="s-error" id="sellerError"></div>
+
+  <!-- 結果 -->
+  <div id="sellerResultsSection" style="display:none;">
+
+    <!-- サマリー -->
+    <div class="stats-row" id="sellerStatsRow"></div>
+
+    <!-- フィルター + 出力ボタン -->
+    <div class="filter-row">
+      <div class="filter-group">
+        <label>最小売却回数</label>
+        <input type="number" id="sellerFilterMin" placeholder="1" min="1" value="1" oninput="renderSellerTable()">
+      </div>
+      <div class="filter-group">
+        <label>並び順</label>
+        <select id="sellerSortSelect" onchange="renderSellerTable()">
+          <option value="count_desc">売却回数 多い順</option>
+          <option value="count_asc">売却回数 少ない順</option>
+          <option value="date_desc">最終売却日時 新しい順</option>
+          <option value="addr_asc">アドレス昇順</option>
+        </select>
+      </div>
+      <div class="filter-group" style="justify-content:flex-end;">
+        <label>&nbsp;</label>
+        <span class="badge" id="sellerFilteredCount"></span>
+      </div>
+    </div>
+
+    <!-- 出力ボタン -->
+    <div style="display:flex; justify-content:flex-end; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+      <div class="s-export-status" id="sellerExportStatus"></div>
+      <button class="export-sheet-btn" id="sellerExportBtn" onclick="exportSellerToSheet()">
+        📊 スプレッドシートに出力
+      </button>
+    </div>
+
+    <!-- テーブル -->
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="result-table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:44px;">順位</th>
+              <th>ウォレットアドレス（売却者）</th>
+              <th style="width:100px;text-align:center;">売却回数</th>
+              <th style="width:180px;">最終売却日時（JST）</th>
+            </tr>
+          </thead>
+          <tbody id="sellerResultBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <footer>CNP RED ツール — 非公式ツール</footer>
 
 <script>
@@ -853,6 +939,7 @@ So11111111111111111111111111111111111111112"></textarea>
     document.getElementById('page-search').style.display      = tabId === 'search'    ? '' : 'none';
     document.getElementById('page-complete').style.display    = tabId === 'complete'  ? '' : 'none';
     document.getElementById('page-kakeranft').style.display   = tabId === 'kakeranft' ? '' : 'none';
+
   }
 
   // ============================================================
@@ -2151,6 +2238,7 @@ So11111111111111111111111111111111111111112"></textarea>
     el.className = 's-export-status' + (html ? ' show' : '') + (type === 'error' ? ' error' : '');
   }
 
+  // ===== 初期化（売却者抽出は削除済み） =====
   // ===== 初期化 =====
   loadApiKey();
 </script>
